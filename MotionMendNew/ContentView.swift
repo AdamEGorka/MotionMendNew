@@ -205,14 +205,16 @@ struct ContentView: View {
                             } else {
                                 // End exercise logic
 //                                bluetoothManager.simulate()
-                                bluetoothManager.saveDataToDatabase()
+                                motivationalText = "Bend your knee"
                                 isExerciseInProgress = false
+
+                                bluetoothManager.saveDataToDatabase()
                                 
                                 // Reset exercise-related states
                                 repCount = 0
                                 hasReachedNinety = false
                                 approachingFullExtension = false
-                                motivationalText = "Bend your knee"
+//                                motivationalText = "Bend your knee"
                             }
                         }
                     }) {
@@ -248,7 +250,7 @@ struct ContentView: View {
     }
     
     private func updateRepCount() {
-        let kneeAngle = getKneeAngle()
+        let kneeAngle = getKneeAngle() + 5
         print(kneeAngle)
         if kneeAngle >= 70 && kneeAngle < 90 && !hasReachedNinety {
             approachingFullExtension = true

@@ -115,7 +115,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         var tibia: Double = 0
         let currentTimestamp = Date().timeIntervalSince1970
         let nanosecondPrecision = DispatchTime.now().uptimeNanoseconds
-        let uniqueTimestamp = currentTimestamp + Double(counter) * 0.0001
+//        let uniqueTimestamp = currentTimestamp + Double(counter) * 0.0001
         for i in stride(from: 0, to: values.count, by: 3) {
             let roll = values[i]
             let pitch = values[i + 1]
@@ -197,7 +197,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                     print("Failed to save data row \(i + 1) to database: \(error)")
                 }
             }
-            Thread.sleep(forTimeInterval: 0.1)
+            Thread.sleep(forTimeInterval: 0.07)
         }
     }
     
