@@ -135,7 +135,6 @@ struct ContentView: View {
                         .cornerRadius(15)
                         .padding(.horizontal, 20)
                     }
-                    Spacer()
                     
                     // Knee and Leg Visualization Section
                     ZStack {
@@ -149,13 +148,16 @@ struct ContentView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 150, height: 150)
-                            .rotationEffect(.degrees(getKneeAngle())) // Foot starts horizontal, follows knee angle
+                            .rotationEffect(.degrees(getKneeAngle() - 90)) // Foot starts horizontal, follows knee angle
                             .animation(.easeInOut(duration: 0.4), value: getKneeAngle())
                     }
                     .padding()
                     
-                    Spacer()
-                    
+                    Text("Current Angle: \(String(format: "%.2f", getKneeAngle()))")
+                        .font(.title3)
+                        .foregroundStyle(Color.black)
+                
+                                        
                     // Feedback and Progress Section
                     VStack {
                         Text(motivationalText)
@@ -202,7 +204,8 @@ struct ContentView: View {
                                 isExerciseInProgress = true
                             } else {
                                 // End exercise logic
-                                bluetoothManager.simulate()
+//                                bluetoothManager.simulate()
+                                bluetoothManager.saveDataToDatabase()
                                 isExerciseInProgress = false
                                 
                                 // Reset exercise-related states
@@ -247,14 +250,14 @@ struct ContentView: View {
     private func updateRepCount() {
         let kneeAngle = getKneeAngle()
         print(kneeAngle)
-        if kneeAngle >= 85 && kneeAngle < 90 && !hasReachedNinety {
+        if kneeAngle >= 70 && kneeAngle < 90 && !hasReachedNinety {
             approachingFullExtension = true
-            motivationalText = approachingQuotes.randomElement() ?? "Almost there!"
+            motivationalText = "Almost there!"
         } else if kneeAngle >= 90 {
             hasReachedNinety = true
             approachingFullExtension = false
-            motivationalText = "Now bend back!"
-        } else if kneeAngle < 15 && hasReachedNinety {
+            motivationalText = "Straighten out!"
+        } else if kneeAngle < 30 && hasReachedNinety {
             repCount += 1
             hasReachedNinety = false
             motivationalText = motivationalQuotes.randomElement() ?? "Great job!"

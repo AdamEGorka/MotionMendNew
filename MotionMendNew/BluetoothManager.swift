@@ -2,7 +2,6 @@ import CoreBluetooth
 import Foundation
 import KneeLibrary
 import MySQLKit
-
 class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     
     @Published var isBluetoothOn = false
@@ -21,7 +20,6 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     var tibia0: Double = 0
     var angles: [(Double, Double)] = []
     var timestamp0 = Date().timeIntervalSince1970
-
     let AVG_CALIBRATION = 100
     
     // Global arrays to store roll, pitch, and yaw values for each IMU
@@ -38,6 +36,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     var imu3YawValues: [Double] = []
     
     var timestamps: [Double] = []
+    var knee_angles_l: [Double] = []
     
     override init() {
         db = DatabaseManager()
@@ -96,6 +95,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         if let data = characteristic.value {
             if let dataString = String(data: data, encoding: .utf8) {
                 DispatchQueue.main.async {
+                    print(dataString)
                     self.processData(dataString)
                 }
             }
@@ -154,6 +154,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             let angle = (femur0 - femur) - (tibia0 - tibia)
             currentKneeAngle = String(format: "%.2f degrees", angle)
             angles.append((Date().timeIntervalSince1970 - timestamp0, angle))
+            knee_angles_l.append(angle)
             print("computed angle: \(angle)")
         }
     }
@@ -164,20 +165,20 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             return
         }
         
-        for i in 0..<min(imu1RollValues.count, imu2RollValues.count, imu3RollValues.count) {
+        for i in AVG_CALIBRATION..<min(imu1RollValues.count, imu2RollValues.count, imu3RollValues.count, knee_angles_l.count) {
             let queryString = """
             INSERT INTO patient_data (
                 patient_id, timestamp, pelvis_roll, pelvis_pitch, pelvis_yaw,
                 femur_l_roll, femur_l_pitch, femur_l_yaw,
                 femur_r_roll, femur_r_pitch, femur_r_yaw,
                 tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
-                tibia_r_roll, tibia_r_pitch, tibia_r_yaw
+                tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l
             ) VALUES (
                 1, FROM_UNIXTIME(\(timestamps[i] + Double((i)))), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
                 \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
-                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i])
+                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(knee_angles_l[i])
             )
             """
             
@@ -191,7 +192,6 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             }
         }
     }
-
     
     func simulate() {
         guard let filepath = Bundle.main.path(forResource: "data_raw", ofType: "txt") else {
@@ -204,7 +204,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             let lines = fileContent.split(separator: "\n")
             var index = 0
             
-            Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { timer in
+            Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
                 if index >= lines.count {
                     timer.invalidate()
                     return
@@ -235,7 +235,6 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         }
     }
 }
-
 class DatabaseManager {
     let configuration: MySQLConfiguration
     let eventLoopGroup: EventLoopGroup
@@ -276,6 +275,8 @@ class DatabaseManager {
         }
     }
 }
+
+
 
 
 
