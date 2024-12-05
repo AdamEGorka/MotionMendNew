@@ -8,6 +8,10 @@ struct ContentView: View {
     @State private var approachingFullExtension: Bool = false
     @State private var motivationalText: String = "Bend your knee"
     @State private var isSimulationMode: Bool? = nil
+    
+    
+    @State private var isExerciseInProgress: Bool = false
+
 //    let palette = (
 //        background: CColor(UIColor(hex: "#153243ff") ?? .white),
 //        primary: Color(hex: "#2C3E50"),
@@ -16,18 +20,18 @@ struct ContentView: View {
 //        text: Color(hex: "#34495E")
 //    )
     let motivationalQuotes = [
-        "Great job! Keep going!",
+        "Great job!",
         "You're doing amazing!",
-        "Stay strong! You got this!",
+        "Stay strong!",
         "Fantastic effort!",
         "You're crushing it!"
     ]
     
     let approachingQuotes = [
-        "Almost there, keep pushing!",
-        "You're so close, keep it up!",
+        "Keep pushing!",
+        "So close!",
         "Just a little more!",
-        "Great effort, keep bending!"
+        "Great effort!"
     ]
     
     var body: some View {
@@ -145,7 +149,7 @@ struct ContentView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 150, height: 150)
-                            .rotationEffect(.degrees(getKneeAngle() - 90)) // Foot starts horizontal, follows knee angle
+                            .rotationEffect(.degrees(getKneeAngle())) // Foot starts horizontal, follows knee angle
                             .animation(.easeInOut(duration: 0.4), value: getKneeAngle())
                     }
                     .padding()
@@ -176,24 +180,51 @@ struct ContentView: View {
                     // Start Button
                     Button(action: {
                         if isSimulationMode == true {
-                            bluetoothManager.simulateBluetoothDataFromFile()
+                            if !isExerciseInProgress {
+                                bluetoothManager.simulate()
+                                isExerciseInProgress = true
+                            } else {
+                                // Send end exercise query through BluetoothManager
+                                bluetoothManager.saveDataToDatabase()
+                                isExerciseInProgress = false
+                                
+                                // Reset exercise-related states
+                                repCount = 0
+                                hasReachedNinety = false
+                                approachingFullExtension = false
+                                motivationalText = "Bend your knee"
+                            }
                         } else {
-                            
-                            // Start exercise logic here
+                            // Similar logic for non-simulation mode,
+                            // but you'd use the appropriate bluetooth methods
+                            if !isExerciseInProgress {
+                                // Start exercise logic
+                                isExerciseInProgress = true
+                            } else {
+                                // End exercise logic
+                                bluetoothManager.simulate()
+                                isExerciseInProgress = false
+                                
+                                // Reset exercise-related states
+                                repCount = 0
+                                hasReachedNinety = false
+                                approachingFullExtension = false
+                                motivationalText = "Bend your knee"
+                            }
                         }
                     }) {
-                        Text(isSimulationMode == true ? "Start Exercise" : "Start Exercise")
+                        Text(isExerciseInProgress ? "End Exercise" : "Start Exercise")
                             .font(.title3)
                             .bold()
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-//                            .background(Color.purple)
-                            .background(Color(UIColor(hex: "#153243ff") ?? .white))
+                            .background(isExerciseInProgress ? Color.red : Color(UIColor(hex: "#153243ff") ?? .white))
                             .cornerRadius(15)
                             .padding(.horizontal, 20)
                             .shadow(radius: 5)
                     }
+                    
                     
                     Spacer()
                 }
@@ -215,7 +246,7 @@ struct ContentView: View {
     
     private func updateRepCount() {
         let kneeAngle = getKneeAngle()
-        
+        print(kneeAngle)
         if kneeAngle >= 85 && kneeAngle < 90 && !hasReachedNinety {
             approachingFullExtension = true
             motivationalText = approachingQuotes.randomElement() ?? "Almost there!"
