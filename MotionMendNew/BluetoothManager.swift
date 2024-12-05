@@ -37,6 +37,8 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     var imu3PitchValues: [Double] = []
     var imu3YawValues: [Double] = []
     
+    var timestamps: [Double] = []
+    
     override init() {
         db = DatabaseManager()
         super.init()
@@ -110,12 +112,13 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         
         var femur: Double = 0
         var tibia: Double = 0
-        
+        let currentTimestamp = Date().timeIntervalSince1970
+        let uniqueTimestamp = currentTimestamp + Double(counter) * 0.0001
         for i in stride(from: 0, to: values.count, by: 3) {
             let roll = values[i]
             let pitch = values[i + 1]
             let yaw = values[i + 2]
-            
+            timestamps.append(uniqueTimestamp)
             switch i {
             case 0:
                 imu1RollValues.append(roll)
@@ -170,7 +173,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                 tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
                 tibia_r_roll, tibia_r_pitch, tibia_r_yaw
             ) VALUES (
-                9, NOW(), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
+                1, FROM_UNIXTIME(\(timestamps[i] + Double((i)))), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
                 \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
@@ -201,7 +204,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             let lines = fileContent.split(separator: "\n")
             var index = 0
             
-            Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { timer in
+            Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { timer in
                 if index >= lines.count {
                     timer.invalidate()
                     return
