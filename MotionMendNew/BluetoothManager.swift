@@ -12,7 +12,8 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     private var centralManager: CBCentralManager!
     private var targetPeripheral: CBPeripheral?
     private var db: DatabaseManager
-    
+
+
     var avgFemur: [Double] = []
     var avgTibia: [Double] = []
     var counter = 0
@@ -113,11 +114,17 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         var femur: Double = 0
         var tibia: Double = 0
         let currentTimestamp = Date().timeIntervalSince1970
+        let nanosecondPrecision = DispatchTime.now().uptimeNanoseconds
         let uniqueTimestamp = currentTimestamp + Double(counter) * 0.0001
         for i in stride(from: 0, to: values.count, by: 3) {
             let roll = values[i]
             let pitch = values[i + 1]
             let yaw = values[i + 2]
+//            timestamps.append(uniqueTimestamp)
+            let uniqueTimestamp = currentTimestamp +
+                                           (Double(nanosecondPrecision) / 1_000_000_000.0) +
+                                           (Double(i) * 0.000001)
+                    
             timestamps.append(uniqueTimestamp)
             switch i {
             case 0:
@@ -174,7 +181,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                 tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
                 tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l
             ) VALUES (
-                1, FROM_UNIXTIME(\(timestamps[i] + Double((i)))), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
+                1, FROM_UNIXTIME(\(timestamps[i])), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
                 \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
@@ -190,6 +197,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                     print("Failed to save data row \(i + 1) to database: \(error)")
                 }
             }
+            Thread.sleep(forTimeInterval: 0.05)
         }
     }
     
@@ -262,16 +270,21 @@ class DatabaseManager {
     
     func executeQuery(_ queryString: String) -> EventLoopFuture<Void> {
         return pools.withConnection { conn in
-            print(conn)
-            return conn.query(queryString)
-                .map { result in
-                    print("Query executed successfully")
-                    return ()
+            // Set the session variables to extend the timeout duration
+            return conn.query("SET SESSION net_read_timeout = 360000000000000").flatMap { _ in
+                return conn.query("SET SESSION net_write_timeout = 360000000000000").flatMap { _ in
+                    // Execute your actual query
+                    return conn.query(queryString)
+                        .map { result in
+                            print("Query executed successfully")
+                            return ()
+                        }
+                        .flatMapError { error in
+                            print("Failed to execute query: \(error)")
+                            return conn.eventLoop.future(error: error)
+                        }
                 }
-                .flatMapError { error in
-                    print("Query error: \(error)")
-                    return conn.eventLoop.future(error: error)
-                }
+            }
         }
     }
 }
