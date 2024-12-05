@@ -172,20 +172,20 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             return
         }
         
-        for i in AVG_CALIBRATION..<min(imu1RollValues.count, imu2RollValues.count, imu3RollValues.count, knee_angles_l.count) {
+        for i in 0..<min(imu1RollValues.count, imu2RollValues.count, imu3RollValues.count, knee_angles_l.count) {
             let queryString = """
             INSERT INTO patient_data (
                 patient_id, timestamp, pelvis_roll, pelvis_pitch, pelvis_yaw,
                 femur_l_roll, femur_l_pitch, femur_l_yaw,
                 femur_r_roll, femur_r_pitch, femur_r_yaw,
                 tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
-                tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l
+                tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l, knee_angle_r
             ) VALUES (
                 1, FROM_UNIXTIME(\(timestamps[i])), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
                 \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
                 \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
-                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(knee_angles_l[i])
+                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(knee_angles_l[i]), \(knee_angles_l[i])
             )
             """
             
@@ -197,7 +197,7 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
                     print("Failed to save data row \(i + 1) to database: \(error)")
                 }
             }
-            Thread.sleep(forTimeInterval: 0.05)
+            Thread.sleep(forTimeInterval: 0.1)
         }
     }
     
