@@ -148,7 +148,7 @@ struct ContentView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 150, height: 150)
-                            .rotationEffect(.degrees(getKneeAngle() - 90)) // Foot starts horizontal, follows knee angle
+                            .rotationEffect(.degrees(getKneeAngle() - 75)) // Foot starts horizontal, follows knee angle
                             .animation(.easeInOut(duration: 0.4), value: getKneeAngle())
                     }
                     .padding()
@@ -250,7 +250,7 @@ struct ContentView: View {
     }
     
     private func updateRepCount() {
-        let kneeAngle = getKneeAngle() + 5
+        let kneeAngle = getKneeAngle() + 10
         print(kneeAngle)
         if kneeAngle >= 70 && kneeAngle < 90 && !hasReachedNinety {
             approachingFullExtension = true

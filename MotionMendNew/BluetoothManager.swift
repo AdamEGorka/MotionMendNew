@@ -12,8 +12,6 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     private var centralManager: CBCentralManager!
     private var targetPeripheral: CBPeripheral?
     private var db: DatabaseManager
-
-
     var avgFemur: [Double] = []
     var avgTibia: [Double] = []
     var counter = 0
@@ -115,12 +113,10 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
         var tibia: Double = 0
         let currentTimestamp = Date().timeIntervalSince1970
         let nanosecondPrecision = DispatchTime.now().uptimeNanoseconds
-//        let uniqueTimestamp = currentTimestamp + Double(counter) * 0.0001
         for i in stride(from: 0, to: values.count, by: 3) {
             let roll = values[i]
             let pitch = values[i + 1]
             let yaw = values[i + 2]
-//            timestamps.append(uniqueTimestamp)
             let uniqueTimestamp = currentTimestamp +
                                            (Double(nanosecondPrecision) / 1_000_000_000.0) +
                                            (Double(i) * 0.000001)
@@ -172,32 +168,29 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
             return
         }
         
+        var queryValues: [String] = []
         for i in 0..<min(imu1RollValues.count, imu2RollValues.count, imu3RollValues.count, knee_angles_l.count) {
-            let queryString = """
-            INSERT INTO patient_data (
-                patient_id, timestamp, pelvis_roll, pelvis_pitch, pelvis_yaw,
-                femur_l_roll, femur_l_pitch, femur_l_yaw,
-                femur_r_roll, femur_r_pitch, femur_r_yaw,
-                tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
-                tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l, knee_angle_r
-            ) VALUES (
-                1, FROM_UNIXTIME(\(timestamps[i])), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]),
-                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]),
-                \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
-                \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]),
-                \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(knee_angles_l[i]), \(knee_angles_l[i])
-            )
-            """
-            
-            db.executeQuery(queryString).whenComplete { result in
-                switch result {
-                case .success:
-                    print("Data row \(i + 1) saved to database successfully")
-                case .failure(let error):
-                    print("Failed to save data row \(i + 1) to database: \(error)")
-                }
+            let valueString = "(1, FROM_UNIXTIME(\(timestamps[i])), \(imu1RollValues[i]), \(imu1PitchValues[i]), \(imu1YawValues[i]), \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]), \(imu3RollValues[i]), \(imu3PitchValues[i]), \(imu3YawValues[i]), \(imu2RollValues[i]), \(imu2PitchValues[i]), \(imu2YawValues[i]), \(knee_angles_l[i]), \(knee_angles_l[i]))"
+            queryValues.append(valueString)
+        }
+        
+        let queryString = """
+        INSERT INTO patient_data (
+            patient_id, timestamp, pelvis_roll, pelvis_pitch, pelvis_yaw,
+            femur_l_roll, femur_l_pitch, femur_l_yaw,
+            femur_r_roll, femur_r_pitch, femur_r_yaw,
+            tibia_l_roll, tibia_l_pitch, tibia_l_yaw,
+            tibia_r_roll, tibia_r_pitch, tibia_r_yaw, knee_angle_l, knee_angle_r
+        ) VALUES \(queryValues.joined(separator: ","))
+        """
+        
+        db.executeQuery(queryString).whenComplete { result in
+            switch result {
+            case .success:
+                print("All data saved to database successfully")
+            case .failure(let error):
+                print("Failed to save data to database: \(error)")
             }
-            Thread.sleep(forTimeInterval: 0.07)
         }
     }
     
@@ -270,10 +263,8 @@ class DatabaseManager {
     
     func executeQuery(_ queryString: String) -> EventLoopFuture<Void> {
         return pools.withConnection { conn in
-            // Set the session variables to extend the timeout duration
             return conn.query("SET SESSION net_read_timeout = 360000000000000").flatMap { _ in
                 return conn.query("SET SESSION net_write_timeout = 360000000000000").flatMap { _ in
-                    // Execute your actual query
                     return conn.query(queryString)
                         .map { result in
                             print("Query executed successfully")
